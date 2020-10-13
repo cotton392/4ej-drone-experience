@@ -1,4 +1,2 @@
-# 4ej-drone-experience(ment)
-4EJのドローン制御実験のリポジトリです。
-
-3班らしいです
+# 4ej-drone-experiment
+4EJ 3班のドローン制御実験のリポジトリです。
