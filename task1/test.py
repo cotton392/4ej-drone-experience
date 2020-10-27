@@ -7,6 +7,16 @@ addr = 'udp://' + LOCAL_IP + ':' + str(LOCAL_PORT_VIDEO)
 tello = tello.Tello()
 tello.streamon()
 
+alive = True
+def keep_alive(d: tello.Tello):
+  while True and alive:
+    d.takeoff()
+    time.sleep(5)
+
+aliver = threading.Thread(target=keep_alive, args=(d, ))
+aliver.start()
+
+
 cap = cv2.VideoCapture(addr)
 try:
 	while(cap.isOpened()):
@@ -17,5 +27,7 @@ try:
 except KeyboardInterrupt:
 	tello.streamoff()
 finally:
+	alive = False
+	aliver.join()
 	cap.release()
 	cv2.destroyAllWindows()
