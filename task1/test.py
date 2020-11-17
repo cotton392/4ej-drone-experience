@@ -1,6 +1,7 @@
 from easytello import tello
 import cv2
 import time
+import random
 import numpy as np
 import threading
 
@@ -8,68 +9,61 @@ LOCAL_IP = '192.168.10.1'
 LOCAL_PORT_VIDEO = '11111'
 addr = 'udp://' + LOCAL_IP + ':' + str(LOCAL_PORT_VIDEO)
 tello = tello.Tello()
+
+order_list = ["up 40", "down 30", "left 40", "right 40", "forward 40", "back 40", "cw 360", "ccw 360"]
+waiting_second = 5
+is_wait = [True]
+
+tello.takeoff()
 tello.send_command('streamon')
 
 def ohara_detect(image):
-	hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-	hsv_min = np.array([0,127,0])
-	hsv_max = np.array([30,255,255])
-	mask1 = cv2.inRange(hsv, hsv_min, hsv_max)
+	low_threshold = (0, 0, 40)
+	high_threshold = (20, 20, 255)
+	red_per_max = 5
 
-	hsv_min = np.array([150,127,0])
-	hsv_max = np.array([179,255,255])
-	mask2 = cv2.inRange(hsv, hsv_min, hsv_max)
+	red_mask = cv2.inRange(image, low_threshold, high_threshold)
+	red_white_pixels = cv2.countNonZero(red_mask)
+	red_black_pixels = red_mask.size - red_white_pixels
+	red_per = round(red_white_pixels / (red_white_pixels + red_black_pixels) * 100, 2)
+	print("red_per: ", str(red_per))
 
-	return mask1+mask2
+	cv2.imshow("ohara-130-mask", cv2.resize(red_mask, dsize=(480, 360)))
 
-def analysis_blob(bin_image):
-	label = cv2.connectedComponentsWithStats(bin_image)
-	n = label[0] - 1
-	data = np.delete(label[2], 0, 0)
-	center = np.delete(label[3], 0, 0)
-
-	max_index = np.argmax(data[:,4])
-	maxblob = {}
-
-	maxblob["upper_left"] = (data[:, 0][max_index], data[:, 1][max_index]) # 左上座標
-	maxblob["width"] = data[:, 2][max_index]  # 幅
-	maxblob["height"] = data[:, 3][max_index]  # 高さ
-	maxblob["area"] = data[:, 4][max_index]   # 面積
-	maxblob["center"] = center[max_index]  # 中心座標
-
-	return maxblob
-
+	return True if red_per >= red_per_max else False
 
 alive = True
-def keep_alive(d):
-  while True and alive:
+def keep_alive(d, iw):
+  while alive:
     d.send_command('command')
+    iw[0] = True
     time.sleep(5)
 
-aliver = threading.Thread(target=keep_alive, args=(tello, ))
+aliver = threading.Thread(target=keep_alive, args=(tello, is_wait))
 aliver.start()
 
 cap = cv2.VideoCapture(addr)
+
 try:
 	while(cap.isOpened()):
+
 		ret, frame = cap.read()
+		print("is_wait: ", is_wait[0])
 		if ret == True:
-			mask = ohara_detect(frame)
-			target = analysis_blob(mask)
+			is_red_ditect = ohara_detect(frame)
+			print("is_red_ditect: ", is_red_ditect)
 
-			center_x = int(target["center"][0])
-			center_y = int(target["center"][1])
-			print("center: ({}, {})".format(center_x, center_y))
-
-			cv2.circle(frame, (center_x, center_y), 30, (255, 255, 0), thickness=3, lineType=cv2.LINE_AA)
-
+			if is_red_ditect and is_wait[0]:
+				is_wait[0] = False
+				tello.send_command(order_list[random.randint(0, len(order_list) - 1)])
 
 			cv2.imshow("ohara-130-frame", cv2.resize(frame, dsize=(480, 360)))
-			cv2.imshow("ohara-130-mask", cv2.resize(mask, dsize=(480, 360)))
 			cv2.waitKey(1)
+
 except KeyboardInterrupt:
 	tello.land()
 	tello.send_command('streamoff')
+
 finally:
 	alive = False
 	aliver.join()
