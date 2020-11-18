@@ -15,7 +15,8 @@ waiting_second = 5
 is_wait = [True]
 
 tello.takeoff()
-tello.send_command('streamon')
+tello.send_command("up 40")
+tello.send_command("streamon")
 
 def ohara_detect(image):
 	low_threshold = (0, 0, 40)
@@ -28,7 +29,7 @@ def ohara_detect(image):
 	red_per = round(red_white_pixels / (red_white_pixels + red_black_pixels) * 100, 2)
 	print("red_per: ", str(red_per))
 
-	cv2.imshow("ohara-130-mask", cv2.resize(red_mask, dsize=(480, 360)))
+	cv2.imshow("ohara_130mask", cv2.resize(red_mask, dsize=(480, 360)))
 
 	return True if red_per >= red_per_max else False
 
@@ -57,7 +58,7 @@ try:
 				is_wait[0] = False
 				tello.send_command(order_list[random.randint(0, len(order_list) - 1)])
 
-			cv2.imshow("ohara-130-frame", cv2.resize(frame, dsize=(480, 360)))
+			cv2.imshow("ohara_130frame", cv2.resize(frame, dsize=(480, 360)))
 			cv2.waitKey(1)
 
 except KeyboardInterrupt:
