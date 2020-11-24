@@ -21,7 +21,6 @@ blue_high = (255, 150, 150)
 red_per_max = 70
 blue_per_max = 60
 
-
 is_wait = [True]
 def camera_red(image):
 	red_mask = cv2.inRange(image, red_low, red_high)
@@ -41,7 +40,6 @@ def camera_blue(image):
 	cv2.imshow("camera_blue", cv2.resize(blue_mask, dsize=(480, 360)))
 	return True if blue_per >= blue_per_max else False
 
-
 alive = True
 def keep_alive(d, iw):
   while alive:
@@ -59,7 +57,6 @@ up_flag = True
 
 try:
 	while(cap.isOpened()):
-
 		ret, frame = cap.read()
 		print("is_wait: ", is_wait[0])
 		if ret == True:
